@@ -1,0 +1,30 @@
+import java.awt.*;
+
+public class FlagPanel extends Panel {
+	
+	private int NUM_STRIPES = 13;
+	
+	private double BLUE_SCALE = 0.76;
+	
+	public FlagPanel(int width, int height) {
+		setPreferredSize(new Dimension(width, height));
+		init();
+	}
+	
+	public void init() {
+		setBackground(Color.WHITE);
+		setVisible(true);
+		repaint();
+	}
+	
+	public void paint(Graphics g) {
+		int stripeHeight = getHeight() / NUM_STRIPES;
+		g.setColor(Color.RED);
+		for (int i = 0; i < 7; i++) {
+			g.fillRect(0, 2 * stripeHeight, getWidth(), stripeHeight);
+		}
+		g.setColor(Color.BLUE);
+		g.fillRect(0, 0, (int)(BLUE_SCALE * getHeight()), 7 * stripeHeight);
+	}
+	
+}

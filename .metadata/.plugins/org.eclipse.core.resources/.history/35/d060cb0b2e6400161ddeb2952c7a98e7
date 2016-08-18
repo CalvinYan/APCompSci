@@ -1,0 +1,24 @@
+import java.awt.*;
+import javax.swing.JFrame;
+
+public class FlagFrame extends JFrame {
+	
+	private FlagPanel panel = new FlagPanel(19, 10);
+	
+	public FlagFrame() {
+		init();
+	}
+	
+	public void init() {
+		add(panel);
+		setResizable(false);
+		pack();
+		repaint();
+	}
+	
+	public void paint(Graphics g) {
+		panel.repaint();
+	}
+	
+	
+}

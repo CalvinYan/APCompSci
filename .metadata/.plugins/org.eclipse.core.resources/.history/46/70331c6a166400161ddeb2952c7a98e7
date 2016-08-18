@@ -1,0 +1,5 @@
+import java.awt.Panel;
+
+public class FlagPanel extends Panel {
+
+}
