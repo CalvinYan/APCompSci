@@ -1,5 +1,10 @@
 import javax.swing.JFrame;
 
+/**
+ * Instantiates a new CowFrame and displays it.
+ * @author Calvin Yan
+ *
+ */
 public class Main {
 
 	public static void main(String[] args) {
