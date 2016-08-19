@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<session version="1.0">
-<refactoring comment="Rename field &apos;diameter&apos; in &apos;Star&apos; to &apos;outerDiameter&apos;&#x0D;&#x0A;- Original project: &apos;USFlag&apos;&#x0D;&#x0A;- Original element: &apos;Star.diameter&apos;&#x0D;&#x0A;- Renamed element: &apos;Star.outerDiameter&apos;&#x0D;&#x0A;- Update references to refactored element&#x0D;&#x0A;- Update textual occurrences in comments and strings" delegate="false" deprecate="false" description="Rename field &apos;diameter&apos;" flags="589826" getter="false" id="org.eclipse.jdt.ui.rename.field" input="/src&lt;{Star.java[Star^diameter" name="outerDiameter" references="true" setter="false" stamp="1471405323054" textual="false" version="1.0"/>
-</session>

@@ -1,2 +1,0 @@
-eclipse.preferences.version=1
-prefWatchExpressions=<?xml version\="1.0" encoding\="UTF-8" standalone\="no"?>\r\n<watchExpressions>\r\n<expression enabled\="true" text\="Math.sin(Math.PI / 2 - 2 * Math.PI / 5)"/>\r\n</watchExpressions>\r\n
