@@ -1,1 +1,7 @@
-The actual drawing of the flag uses three modules. One module contains the window
+The actual drawing of the flag uses three modules. One module creates the window, one module adds all
+of the flag components, and one module specifically draws a star.
+
+Probably the most challenging and meaningful part of this project was the star module, as the star
+needs to be perfect and requires the use of trigonometry to be drawn. I am somewhat proud that I was
+able to create the stars without outside help. The other components consist of simple rectangles and
+a double for-loop for the 50-star pattern, and the entire project is finished.

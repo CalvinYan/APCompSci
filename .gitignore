@@ -4,6 +4,7 @@ build/
 */.settings/
 .settings
 .metadata/*
+.recommenders/*
 
 # Logging Files
 *.dat
