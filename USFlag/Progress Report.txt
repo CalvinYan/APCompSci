@@ -1,0 +1,1 @@
+The actual drawing of the flag uses three modules. One module contains the window
