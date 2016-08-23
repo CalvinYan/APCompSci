@@ -5,3 +5,6 @@ Probably the most challenging and meaningful part of this project was the star m
 needs to be perfect and requires the use of trigonometry to be drawn. I am somewhat proud that I was
 able to create the stars without outside help. The other components consist of simple rectangles and
 a double for-loop for the 50-star pattern, and the entire project is finished.
+
+Although I was able to complete the project without much difficulty, I am not sure how to preserve the flag's
+aspect ratio after resizing the window and would like some guidance on this.
