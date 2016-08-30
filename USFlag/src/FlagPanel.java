@@ -41,7 +41,8 @@ public class FlagPanel extends Panel {
 	 * represented by a subclass of java.awt.Polygon (see Star.java).
 	 */
 	public void paint(Graphics g) {
-		int height = getHeight();
+		int height = (int) Math.min(getHeight(), getWidth() / 1.9),
+			width = (int) Math.min(getWidth(), getHeight() * 1.9);
 		
 		// Height of each of the 13 stripes
 		int stripeHeight = height / NUM_STRIPES + 1;
@@ -49,7 +50,7 @@ public class FlagPanel extends Panel {
 		// Red stripes
 		g.setColor(OLD_GLORY_RED);
 		for (int i = 0; i < 7; i++) {
-			g.fillRect(0, i * 2 * stripeHeight, getWidth(), stripeHeight);
+			g.fillRect(0, i * 2 * stripeHeight, width, stripeHeight);
 		}
 		
 		// Blue rectangle
