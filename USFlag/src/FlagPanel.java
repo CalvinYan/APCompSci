@@ -1,4 +1,6 @@
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 /**
  * The FlagPanel class is the most vital part of the program. It draws the US
@@ -20,6 +22,13 @@ public class FlagPanel extends Panel {
 	private Color OLD_GLORY_RED = new Color(187, 19, 62), 
 			OLD_GLORY_BLUE = new Color(0, 33, 71);
 	
+	// 50 stars
+	private Star[] stars = new Star[50];
+	
+	private double rotation = 0;
+	
+	private int flagWidth = 0, flagHeight = 0;
+	
 	public FlagPanel(int width, int height) {
 		setPreferredSize(new Dimension(width, height));
 		init();
@@ -31,6 +40,34 @@ public class FlagPanel extends Panel {
 	public void init() {
 		setBackground(Color.WHITE);
 		setVisible(true);
+		addMouseListener(new MouseAdapter() {
+			public void mouseClicked(MouseEvent e) {
+				//rotation = Math.PI / 2;
+				//repaint();
+				for (int i = 1; i <= 90; i++) {
+					rotation = i * Math.PI / 45;
+					paint(getGraphics());
+					try {
+						Thread.sleep(5);
+					} catch(InterruptedException e1){
+						e1.printStackTrace();
+					}
+				}
+				
+			}
+
+			@Override
+			public void mouseEntered(MouseEvent arg0) {}
+
+			@Override
+			public void mouseExited(MouseEvent arg0) {}
+
+			@Override
+			public void mousePressed(MouseEvent arg0) {}
+
+			@Override
+			public void mouseReleased(MouseEvent arg0) {}
+		});
 		repaint();
 	}
 	
@@ -41,35 +78,38 @@ public class FlagPanel extends Panel {
 	 * represented by a subclass of java.awt.Polygon (see Star.java).
 	 */
 	public void paint(Graphics g) {
-		int height = (int) Math.min(getHeight(), getWidth() / 1.9),
-			width = (int) Math.min(getWidth(), getHeight() * 1.9);
+		System.out.println(rotation);
+		flagHeight = (int) Math.min(getHeight(), getWidth() / 1.9);
+		flagWidth = (int) Math.min(getWidth(), getHeight() * 1.9);
 		
 		// Height of each of the 13 stripes
-		int stripeHeight = height / NUM_STRIPES + 1;
+		int stripeHeight = flagHeight / NUM_STRIPES + 1;
 		
 		// Red stripes
 		g.setColor(OLD_GLORY_RED);
 		for (int i = 0; i < 7; i++) {
-			g.fillRect(0, i * 2 * stripeHeight, width, stripeHeight);
+			g.fillRect(0, i * 2 * stripeHeight, flagWidth, stripeHeight);
 		}
 		
 		// Blue rectangle
 		g.setColor(OLD_GLORY_BLUE);
-		g.fillRect(0, 0, (int)(BLUE_SCALE * height), 7 * stripeHeight);
+		g.fillRect(0, 0, (int)(BLUE_SCALE * flagHeight), 7 * stripeHeight);
 		
 		// 50 stars
 		g.setColor(Color.WHITE);
-		double starDiameter = height * 0.0616;
+		double starDiameter = flagHeight * 0.0616;
+		int counter = 0;
 		// Add the stars using a double for-loop 
 		for (int i = 0; i < 9; i++) {
 			// Number of stars in the row (alternates between 6 and 5)
 			int numStars = 6 - i % 2;
-			int y = (int) ((height * (i + 1) * 0.054) - starDiameter / 2);
+			int y = (int) ((flagHeight * (i + 1) * 0.054) - starDiameter / 2);
 			for (int j = 0; j < numStars; j++) {
-				int x = (int) (height * ((i % 2 + 1) * 0.063 + j * 0.126) - starDiameter / 2);
+				int x = (int) (flagHeight * ((i % 2 + 1) * 0.063 + j * 0.126) - starDiameter / 2);
 				// Add a star at the specified coordinates
-				Star s = new Star(starDiameter, x, y);
+				Star s = new Star(starDiameter, x, y, rotation);
 				g.fillPolygon(s);
+				stars[counter++] = s;
 			}
 		}
 	}

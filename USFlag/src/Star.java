@@ -1,4 +1,7 @@
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 
 /**
  * A utility class for drawing a perfect 5-point star. The class draws a star
@@ -11,15 +14,16 @@ import java.awt.*;
 
 public class Star extends Polygon {
 	
-	private double outerDiameter = 0, innerDiameter = 0;
+	private double outerDiameter = 0, innerDiameter = 0, rotation = 0;
 	
 	// Location of the top left corner of the star's bounding box.
 	private int originX = 0, originY = 0;
 	
-	public Star(double diameter, int originX, int originY) {
+	public Star(double diameter, int originX, int originY, double rotation) {
 		this.outerDiameter = diameter;
 		this.originX = originX;
 		this.originY = originY;
+		this.rotation = rotation;
 		/* Use the Law of Sines to get the distance from each inner point to
 		 * the center.
 		 */
@@ -32,6 +36,7 @@ public class Star extends Polygon {
 	 * Calculates the 10 points of the star and adds them.
 	 */
 	public void initPoints() {
+		invalidate();
 		double outerRadius = outerDiameter / 2, innerRadius = innerDiameter / 2,
 			centerX = originX + outerRadius, centerY = originY + outerRadius;
 		// The angular distance between each point (36 degrees)
@@ -40,8 +45,8 @@ public class Star extends Polygon {
 			// Alternate between outer and inner points
 			double radius = (i % 2 == 0) ? outerRadius : innerRadius;
 			// Derive x and y using the angle and radius
-			int x = (int) (centerX - Math.cos(Math.PI / 2 - i * angleIncrement) * radius),
-				y = (int) (centerY - Math.sin(Math.PI / 2 - i * angleIncrement) * radius);
+			int x = (int) (centerX - Math.cos(Math.PI / 2 - rotation - i * angleIncrement) * radius),
+				y = (int) (centerY - Math.sin(Math.PI / 2 - rotation - i * angleIncrement) * radius);
 			addPoint(x, y);
 		}
 	}
