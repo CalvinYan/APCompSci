@@ -8,7 +8,7 @@ public class LogicalExpressionCollection {
 	private ArrayList<String> statements = new ArrayList<String>();
 	
 	public static void main(String[] args) throws Exception {
-		LogicalExpressionCollection test = new LogicalExpressionCollection("p r", new String[]{"p|(r|(p|(r)))"});
+		LogicalExpressionCollection test = new LogicalExpressionCollection("p ~r q", new String[]{"p|r&q"});
 		test.evaluate();
 	}
 	
@@ -64,7 +64,6 @@ public class LogicalExpressionCollection {
 			System.out.println(statement);
 		}
 		// Check for implication operators
-		index = 0;
 		while ((index = statement.indexOf('=')) != -1) {
 			boolean biconditional = (statement.charAt(index - 1) == '<');
 			String left, right;
@@ -77,6 +76,25 @@ public class LogicalExpressionCollection {
 			return value;
 		}
 		// Check for and operators
+		while ((index = statement.indexOf("&")) != -1) {
+			String substring = statement.substring(index - 1, index + 2),
+					left = statement.substring(index - 2, index),
+					right = statement.substring(index + 1, index + 3);
+			boolean value = valueOf(left) && valueOf(right);
+			System.out.println("Evaluating conjunction: " + left + " and " + right);
+			statement.replace(substring, (value) ? "T" : "F");
+			System.out.println(value);
+		}
+		// Check for or operators
+		while ((index = statement.indexOf("|")) != -1) {
+			String substring = statement.substring(index - 1, index + 2),
+					left = statement.substring(Math.max(index - 2, 0), index),
+					right = statement.substring(index + 1, Math.min(statement.length(), index + 3));
+			boolean value = valueOf(left) || valueOf(right);
+			System.out.println("Evaluating disjunction: " + left + " and " + right);
+			statement = statement.replace(substring, (value) ? "T" : "F");
+			System.out.println(value);
+		}
 		return false;
 	}
 	
@@ -90,17 +108,15 @@ public class LogicalExpressionCollection {
 	}
 	
 	private boolean valueOf(String statement) throws Exception {
-		char first = statement.charAt(0), variable;
-		boolean result;
-		if (first == '~') {
-			variable = statement.charAt(1);
+		if (statement.charAt(0) != '~') {
+			char variable = statement.charAt(statement.length() - 1);
 			if (constants.containsKey(variable)) {
 				return !constants.get(variable);
 			} else throw new Exception("Invalid constant " + variable);
 		} else {
-			variable = statement.charAt(0);
+			char variable = statement.charAt(1);
 			if (constants.containsKey(variable)) {
-				return constants.get(variable);
+				return !constants.get(variable);
 			} else throw new Exception("Invalid constant " + variable);
 		}
 	}
