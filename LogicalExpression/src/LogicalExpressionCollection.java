@@ -7,7 +7,12 @@ public class LogicalExpressionCollection {
 	
 	private ArrayList<String> statements = new ArrayList<String>();
 	
-	public LogicalExpressionCollection(String constants, String[] statements) {
+	public static void main(String[] args) throws Exception {
+		LogicalExpressionCollection test = new LogicalExpressionCollection("p r", new String[]{"p|(r|(p|(r)))"});
+		test.evaluate();
+	}
+	
+	public LogicalExpressionCollection(String constants, String[] statements) throws Exception {
 		String[] assignments = constants.split(" ");
 		for (String a : assignments) {
 			char letter = a.charAt(0);
@@ -16,21 +21,103 @@ public class LogicalExpressionCollection {
 				letter = a.charAt(1);
 				value = false;
 			}
+			if (letter == 'T' || letter == 'F') {
+				throw new Exception("Please avoid using T or F as constants.");
+			}
 			this.constants.put(letter, value);
 		}
+		this.constants.put('T', true);
+		this.constants.put('F', false);
 		for (String statement : statements) {
 			this.statements.add(statement);
 		}
 	}
 	
-	public boolean[] evaluate() {
-		int length = constants.size();
+	public boolean[] evaluate() throws Exception {
+		int length = statements.size();
 		boolean[] results = new boolean[length];
 		for (int i = 0; i < length; i++) {
-			
+			String statement = statements.get(i);
+			removeSpaces(statement);
+			results[i] = evaluate(statements.get(i));
+		}
+		return results;
+	}
+	
+	private boolean evaluate(String statement) throws Exception {
+		if (statement.isEmpty()) {
+			throw new Exception("Empty string where expression should be");
+		}
+		if (statement.length() < 3) {
+			//statement is a single variable
+			return valueOf(statement);
+		}
+		
+		
+		// Remove parentheses
+		int index = 0;
+		while ((index = statement.indexOf('(')) != -1) {
+			int close = findCloseParen(statement, index);
+			String substring = statement.substring(index, close + 1);
+			boolean result = evaluate(statement.substring(index + 1, close));
+			statement = statement.replace(substring, (result) ? "T" : "F");
+			System.out.println(statement);
+		}
+		// Check for implication operators
+		index = 0;
+		while ((index = statement.indexOf('=')) != -1) {
+			boolean biconditional = (statement.charAt(index - 1) == '<');
+			String left, right;
+			int rightBound = (biconditional) ? index - 1 : index;
+			left = statement.substring(0, rightBound);
+			right = statement.substring(index + 2);
+			System.out.println("Evaluating conditional: " + left + " and " + right);
+			boolean value = (biconditional) ? (evaluate(left) == evaluate(right)) : (!evaluate(left) || evaluate(right));
+			System.out.println(value);
+			return value;
+		}
+		// Check for and operators
+		return false;
+	}
+	
+	private void removeSpaces(String s) {
+		String[] tokens = s.split(" ");
+		s = "";
+		for (String t : tokens) {
+			s += t;
+		}
+		System.out.println("Processed string: " + s);
+	}
+	
+	private boolean valueOf(String statement) throws Exception {
+		char first = statement.charAt(0), variable;
+		boolean result;
+		if (first == '~') {
+			variable = statement.charAt(1);
+			if (constants.containsKey(variable)) {
+				return !constants.get(variable);
+			} else throw new Exception("Invalid constant " + variable);
+		} else {
+			variable = statement.charAt(0);
+			if (constants.containsKey(variable)) {
+				return constants.get(variable);
+			} else throw new Exception("Invalid constant " + variable);
 		}
 	}
 	
-	private boolean
+	private int findCloseParen(String statement, int index) {
+		int count = 1;
+		do {
+			index++;
+			if (statement.charAt(index) == '(') {
+				count++;
+			} else if (statement.charAt(index) == ')') {
+				count--;
+			}
+		} while (count != 0);
+		return index;
+	}
+	
+	
 	
 }
