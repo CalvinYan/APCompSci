@@ -1,4 +1,3 @@
-import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
@@ -13,18 +12,22 @@ public class LogicalExpressionCollection {
 
 	private HashMap<Character, Boolean> constants = new HashMap<Character, Boolean>();
 	
-	private ArrayList<String> statements = new ArrayList<String>();
+	private String[] statements;
 	
 	public static void main(String[] args) throws Exception {
-	LogicalExpressionCollection test = new LogicalExpressionCollection("~p q ~r s ~t", new String[]{"~p&q&~r&s&~t", "p=>q=>r"});
+	LogicalExpressionCollection test = new LogicalExpressionCollection("p q r s t", new String[]{"~p&q&~r&s&~t", "p=>q=>r"});
 		String input = "q&r";
 		boolean[] arr = test.entails(input);
 		for (int i = 0; i < arr.length; i++) {
-			System.out.println(input + " entails " + test.statements.get(i) + ": " + arr[i]);
+			System.out.println(input + " entails " + test.statements[i] + ": " + arr[i]);
 		}
-		arr = test.evaluate();
-		for (int i = 0; i < arr.length; i++) {
-			System.out.println(test.statements.get(i) + ": " + arr[i]);
+		boolean[][] newArr = test.evaluate();
+		for (int i = 0; i < newArr.length; i++) {
+			System.out.print(test.statements[i] + ":");
+			for (int j = 0; j < newArr[0].length; j++) {
+				System.out.print(" " + newArr[i][j]);
+			}
+			System.out.println();
 		}
 	}
 	
@@ -42,19 +45,12 @@ public class LogicalExpressionCollection {
 		String[] assignments = constants.split(" ");
 		for (String a : assignments) {
 			char letter = a.charAt(0);
-			boolean value = true;
-			if (letter == '~') {
-				letter = a.charAt(1);
-				value = false;
-			}
 			if (letter == 'T' || letter == 'F') {
 				throw new Exception("Please avoid using T or F as constants.");
 			}
-			this.constants.put(letter, value);
+			this.constants.put(letter, true);
 		}
-		for (String statement : statements) {
-			this.statements.add(statement);
-		}
+		this.statements = statements;
 	}
 	
 	/**
@@ -64,14 +60,36 @@ public class LogicalExpressionCollection {
 	 * the logical expressions.
 	 * @throws Exception if any of the expressions are invalid.
 	 */
-	public boolean[] evaluate() throws Exception {
-		int length = statements.size();
-		boolean[] results = new boolean[length];
-		for (int i = 0; i < length; i++) {
-			String statement = statements.get(i);
-			removeSpaces(statement);
-			// Determine if the statement is true
-			results[i] = evaluate(statements.get(i));
+	public boolean[][] evaluate() throws Exception {
+		int n = constants.size(), limit = (int)Math.pow(2,  n);
+		boolean[][] results = new boolean[statements.length][limit];
+		/*
+		 * Compute all possible truth assignments
+		 * A bit of a cheap way to do it; each truth assignment can be seen as
+		 * an n-bit integer where n is the number of variables, so that each bit
+		 * represents a single variable (0 being false, 1 being true).
+		 */
+		Character[] keys = constants.keySet().toArray(new Character[0]);
+		for (int i = 0; i < statements.length; i++) {
+			// Because we start from 1111...11 and go down to 0000...00, the
+			// loop is in descending order.
+			for (int j = limit - 1; j >= 0; j--) {
+				/*
+				 * Parse the truth assignment. The value of a certain variable
+				 * can be found with the bitwise & operator. For example, to
+				 * find the value of the first variable in "truth assignment" x,
+				 * we do x & 00001 = y. If the first bit of x is positive, then y
+				 * should equal 00001.
+				 */
+				for (int k = 0; k < n; k++) {
+					int pow = (int)Math.pow(2, k);
+					boolean value = (j & pow) == pow;
+					constants.put(keys[k], value);
+				}
+				// Check if the statement is true using these truth values
+				removeSpaces(statements[i]);
+				results[i][limit - j - 1] = evaluate(statements[i]);
+			}
 		}
 		return results;
 	}
@@ -87,26 +105,13 @@ public class LogicalExpressionCollection {
 	 * @throws Exception if the input is invalid.
 	 */
 	public boolean[] entails(String statement) throws Exception {
-		// Preserve the original constants since they will be modified
-		HashMap<Character, Boolean> original = new HashMap<Character, Boolean>(constants);
 		int n = constants.size(), limit = (int)Math.pow(2,  n);
-		boolean[] results = new boolean[statements.size()];
-		/*
-		 * Compute all possible truth assignments
-		 * A bit of a cheap way to do it; each truth assignment can be seen as
-		 * an n-bit integer where n is the number of variables, so that each bit
-		 * represents a single variable (0 being false, 1 being true).
-		 */
+		boolean[] results = new boolean[statements.length];
+		//Compute all possible truth assignments
 		Character[] keys = constants.keySet().toArray(new Character[0]);
-		for (int i = 0; i < statements.size(); i++) {
+		for (int i = 0; i < statements.length; i++) {
 			for (int j = 0; j < limit; j++) {
-				/*
-				 * Parse the truth assignment. The value of a certain variable
-				 * can be found with the bitwise & operator. For example, to
-				 * find the value of the first variable in "truth assignment" x,
-				 * we do x & 00001 = y. If the first bit of x is positive, then y
-				 * should equal 00001.
-				 */
+				//Parse the truth assignment
 				for (int k = 0; k < n; k++) {
 					int pow = (int)Math.pow(2, k);
 					boolean value = (j & pow) == pow;
@@ -114,7 +119,7 @@ public class LogicalExpressionCollection {
 				}
 				// Check if the input entails this statement
 				if (evaluate(statement)) {
-					if (!evaluate(statements.get(i))) {
+					if (!evaluate(statements[i])) {
 						results[i] = false;
 						break;
 					}
@@ -122,7 +127,6 @@ public class LogicalExpressionCollection {
 				results[i] = true;
 			}
 		}
-		constants = original;
 		return results;
 	}
 	
