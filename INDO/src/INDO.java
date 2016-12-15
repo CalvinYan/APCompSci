@@ -1,50 +1,101 @@
-import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.TreeSet;
 
 public class INDO {
+	
+	/*
+	 *  A class that helps compare single variables. Helpful for sorting.
+	 *  When comparing literals, only the character part is considered.
+	 *  For example, ~a would come before c because a precedes c in the
+	 *  alphabet.
+	 */
+	private static class LiteralComparator implements Comparator<String> {
+		public int compare(String s1, String s2) {
+			return Character.compare(s1.charAt(s1.length() - 1), s2.charAt(s2.length() - 1));
+		}
+	}
 
 	public static void main(String[] args) {
-		getClauses("a&b|c");
-	}
-	
-	// The INDO method is implemented using getClauses, taking in the logical expression to convert as input. The I, N, and D steps are further encapsulated into methods.
-	public static ArrayList<String[]> getClauses(String expression) {
-		/*ArrayList<String[]> clauses = new ArrayList<String[]>();
+		TreeSet<String[]> clauses = new TreeSet<String[]>();
+		String expression;
+		// Test cases
 
-		expression = simplified(expression);
-
-		// Convert to clauses
-		for (String clause : expression.split("&")) {
-			clauses.add(clause.split("|"));
+		expression = "a=>b&c|d";
+		//expression = "a&b=>c|d&~e";
+		//expression = "a|~b|(c=>~d&e)<=g";
+		//expression = "a=>~(b|c&d=>e)|f<=>~~g";	DOES NOT WORK
+		//expression = "a|(b&~c&d&~e)|f&g&h";
+		System.out.println("Evaluating " + expression);
+		clauses = getClauses(expression);
+		System.out.println("Clauses: ");
+		for (String[] s : clauses) {
+			Arrays.sort(s, new LiteralComparator());
+			System.out.println(Arrays.toString(s));
 		}
-		return clauses;*/
-		System.out.println(simplify("a&b=>c|d|~e"));
-		//System.out.println(simplify("a=>~(b|c&d=>e)|f<=>~~g"));
-		//System.out.println(distribute("a|(b&~c&d&~e)|f&g&h"));
-		return null;
 	}
 	
-	// Converts the input string to a form that can be further converted
-	// to clauses, then returns it.
+	// Applies the O part of the INDO method to convert a CNF expression to clauses
+	public static TreeSet<String[]> getClauses(String expression) {
+		// Contains the clauses as String arrays
+		TreeSet<String[]> clauses = new TreeSet<String[]>(new Comparator<String[]>() {
+			public int compare(String[] one, String[] two) {
+				StringBuilder sb1 = new StringBuilder(), sb2 = new StringBuilder();
+				for (String s : one) sb1.append(s);
+				for (String s : two) sb2.append(s);
+				return sb1.toString().compareTo(sb2.toString());
+			}
+		});
+		// Convert to CNF
+		expression = simplify(optimize(expression));
+		/*
+		 * Find all expressions that form a single clause. Some examples:
+		 * a, a|b, a|b|c
+		 */
+		Matcher m = Pattern.compile("~?[a-z](\\|(~?[a-z]))*").matcher(expression);
+		while (m.find()) {
+			String group = m.group(0);
+			// Separate the expression into individual variables
+			String[] literals = group.split("\\|");
+			Arrays.sort(literals, new LiteralComparator());
+			clauses.add(literals);
+		}
+		return clauses;
+	}
+	
+	/*
+	 *  Converts the input string to CNF using the first three steps of the
+	 *  INDO method.
+	 *  Example:
+	 *  simplify("a=>b&c|d") returns (~a|b|d)&(~a|c|d)
+	 */
 	private static String simplify(String expression) {
-		expression = optimize(expression);
+		// Simplify parenthetical expressions first
 		for (int i = 0; i < expression.length(); i++) {
 			if (expression.charAt(i) == '(') {
-				int left = i+1, right = getCloseParen(expression, i);
-				String parenthetical = expression.substring(left, right);
+				String parenthetical = expression.substring(i+1, getCloseParen(expression, i));
 				expression = expression.replace(parenthetical, simplify(parenthetical));
 				i = getCloseParen(expression, i);
 			}
 		}
+		// I
 		expression = removeImplications(expression);
+		// N
 		expression = removeNegations(expression);
+		// D
 		expression = distribute(expression);
 		return expression;
 	}
 	
+	/*
+	 * Converts the expression into a format that is easier to process.
+	 * Example:
+	 * optimize("a & b| c& d ") returns "(a&b)|(c&d)"
+	 */
 	private static String optimize(String expression) {
-		// Remove all spaces
+		// Remove all whitespace
 		expression = expression.replaceAll("\\s", "");
 		
 		/*
@@ -53,10 +104,9 @@ public class INDO {
 		 * Example: a&~b&c|d|e&f|(g&h&i)|j&k&~l&m 
 		 * Matches: a&~b&c, e&f, j&k&~l&m
 		 */
-		Matcher m = Pattern.compile("[\\|^<=>]~?[a-z](\\&~?[a-z])+").matcher(expression);
+		Matcher m = Pattern.compile("~?[a-z](&(~?[a-z]|\\(.*\\)))+").matcher(expression);
 		while (m.find()) {
 			String group = m.group(0);
-			if (!expression.startsWith(group)) group = group.substring(1);
 			// Enclose the expression in parentheses
 			expression = expression.replace(group, String.format("(%s)", group));
 		}
@@ -64,83 +114,123 @@ public class INDO {
 	}
 
 
-	// I
+	// Converts all implication operators into a different form
 	private static String removeImplications(String expression) {
-		// Find all instances of <=>
+		// Find all instances of =>, <=, or <=>
 		Matcher m = Pattern.compile("<?=>?").matcher(expression);
-		if (m.find()) {
+		while (m.find()) {
+			// Get an implication
 			String operator = m.group(0);
-			int leftBound = expression.indexOf(operator), rightBound = leftBound + operator.length();
-			String left = simplify(expression.substring(0, leftBound)), right = simplify(expression.substring(rightBound));
-			if (left.length() > 2) left = "(" + left + ")";
-			if (right.length() > 2) right = "(" + right + ")";
-			System.out.println("Left: " + left + "    right: " + right);
+			int index = expression.indexOf(operator);
+			String left = expression.substring(0, index), right = expression.substring(index + operator.length());
+			if (!enclosed(left) && left.length() > 2) left = "(" + left + ")";
+			if (!enclosed(right) && right.length() > 2) right = "(" + right + ")";
+			// Modify the expression based on the operator
 			switch (operator) {
 			case "=>":
 				expression = "~" + left + "|" + right;
 				break;
 			case "<=":
 				expression = left + "|" + "~" + right;
+				break;
 			case "<=>":
-				expression = "~" + left + "|" + "~" + right;
+				expression = String.format("(~%s|%s)&(%s|~%s)", left, right, left, right);
+				break;
 			}
-			System.out.println("After implication resolution: " + expression);
 		}
-		
 		return expression;
 	}
 
-
-	// N
+	// Converts all negations to a different form
 	private static String removeNegations(String expression) {
 		int index = 0;
+		// Find all negated expressions
 		while ((index = expression.indexOf("~(")) != -1) {
-			// distribute the negation among the literals in the parentheses
+			// Distribute the negation among the literals in the parentheses
 			int leftBound = index, rightBound = getCloseParen(expression, leftBound + 1) + 1;
 			String parenthetical = expression.substring(leftBound, rightBound);
-			System.out.println("Negating " + parenthetical);
 			expression = expression.replace(parenthetical, negateParenthetical(parenthetical));
-			System.out.println("After negation: " + expression);
 		}
-
+		
+		// Remove double negatives
 		expression = expression.replace("~~", "");
 		return expression;
 	}
 
 
-	// D
+	// Apply the rules of distribution in first-order logic
 	private static String distribute(String expression) {
-		Matcher m = Pattern.compile("((~?[a-z]|\\))\\|\\(|\\)\\|(~?[a-z]|\\())").matcher(expression);
-		while (m.find()) {
-			String operator = m.group(0), literal, parenthetical, toReplace;
-			int middle = expression.indexOf(operator) + operator.indexOf('|');
-			String left = getLeftExpression(expression, middle), right = getRightExpression(expression, middle);
-			System.out.println("Distributing " + left + " among " + right);
-			expression = expression.replace(left + "|" + right, distributeParenthetical(left, right));
-			System.out.println("After distribution: " + expression);
+		while (true) {
+			/*
+			 * This cancerous thing finds all expressions that can potentially be distributed. Examples:
+			 * a|(, )|a, a&(, )&a, )|(, )&(
+			 */
+			Matcher m = Pattern.compile("((~?[a-z]|\\))[\\|\\&]\\(|\\)[\\|\\&](~?[a-z]|\\())").matcher(expression);
+			// Are there still expressions that can be distributed?
+			boolean flag = false;
+			while (m.find()) {
+				String group = m.group(0), literal = "", parenthetical = "";
+				// Which operator was caught by the regular expression?
+				char operator = (group.contains("|")) ? '|' : '&';
+				// Location of this operator in the entire expression
+				int middle = expression.indexOf(group) + group.indexOf(operator);
+				// Expressions left and right of the operator
+				String left = getLeftExpression(expression, middle), right = getRightExpression(expression, middle);
+				if (operator == '|') {
+					if (left.matches("~?[a-z]")) {
+						literal = left;
+						parenthetical = right;
+					} else {
+						literal = right;
+						parenthetical = left;
+					}
+					if (onlyOneOperator(left, '|')) {
+						if (onlyOneOperator(right, '|')) {
+							// Both expressions are of the form (a|b|...|c)
+							expression = expression.replace(left + "|" + right, merge(literal, parenthetical, operator));
+							flag = true;
+							continue;
+						}
+					}
+					// Distribute the smaller expression in the larger one
+					// See distributeParenthetical() for example
+					expression = expression.replace(left + "|" + right, distributeParenthetical(literal, parenthetical));
+					flag = true;
+				} else {
+					if (onlyOneOperator(left, '&') && onlyOneOperator(right, '&')) {
+						// Both expressions are of the form (a&b&...&c)
+						expression = expression.replace(left + "&" + right, merge(left, right, operator));
+						flag = true;
+					}
+				}
+			}	
+			// Return if no more expressions to distribute
+			if (!flag) break;
 		}
-/*		for (distributable expression in expression) {
-	
-	 * Implementation details left out because I’m not a big enough nerd.
-	 * Ideally the distributed() method would convert an expression such as
-	 * a|b&c into (a|b)&(a|c).
-	 
-			replace distributable with distributed(distributable);
-		}*/
 		return expression;
 	}
 
 
-	// Applies the rule of negation to parenthetical expressions, such as ~(a&b) into ~a|~b.
+	/*
+	 * Applies the rule of negation to parenthetical expressions.
+	 * Example:
+	 * negateParenthetical("~(a&b)") returns ~a|~b
+	 */
 	private static String negateParenthetical(String expression) {
 		StringBuilder sb = new StringBuilder(expression.substring(2, expression.length() - 1));
 		int index = 0;
 		while (index < sb.length()) {
 			char c = sb.charAt(index);
 			if (Character.isAlphabetic(c)) {
+				// Negate all literals
 				sb.insert(index, '~');
+				/*
+				 *  Since a new character was inserted, the index needs to go
+				 *  to its original location
+				 */
 				index++;
 			} else {
+				// Switch all operators
 				if (c == '&') sb.replace(index, index+1, "|");
 				else if (c == '|') sb.replace(index, index+1, "&");
 			}
@@ -149,20 +239,47 @@ public class INDO {
 		return "(" + sb.toString() + ")";
 	}
 	
+	/*
+	 * Distributes a smaller expression among a larger one using the rule of
+	 * distribution. Both expressions must have a specified format:
+	 * literal: either a single variable or (a|b|...|c)
+	 * expression: (d&e&...&f)
+	 * Example:
+	 * distributeParenthetical("a", "(b&c&d&e)") returns "(a|b)&(a|c)&(a|d)&(a|e)"
+	 */
 	private static String distributeParenthetical(String literal, String expression) {
 		StringBuilder sb = new StringBuilder();
 		while (enclosed(expression)) expression = expression.substring(1, expression.length() - 1);
+		// Individual literals in expression
 		String[] otherLiterals = expression.split("&");
 		for (int i = 0; i < otherLiterals.length; i++) {
+			// Add the smaller expression to the literal and simplify
 			String newExpression = distribute(literal + "|" + otherLiterals[i]);
 			if (!enclosed(newExpression)) newExpression = "(" + newExpression + ")";
+			// Add the result to the new string that will be returned
 			sb.append(newExpression);
 			if (i < otherLiterals.length - 1) sb.append("&");
 		}
-		return (otherLiterals.length > 100) ? "(" + sb.toString() + ")" : sb.toString();
+		String retval = sb.toString();
+		if (!enclosed(retval) && retval.length() > 2) retval = "(" + retval + ")";
+		return retval;
 	}
 	
-	private static int getCloseParen(String expression, int index) {
+	/*
+	 * Combines two logical expressions into one.
+	 * Example:
+	 * merge("(a|b)", "(c|d|e)", '|') returns "((a|b)|c|d|e)"
+	 */
+	private static String merge(String left, String right, char operator) {
+		return "(" + left + operator + right.substring(1);
+	}
+
+	/*
+	 * Given the end of a parenthetical expression, where does it begin?
+	 * Example:
+	 * getOpenParen("a&(b|c)", 2) returns 6
+	 */
+	static int getCloseParen(String expression, int index) {
 		int layers = 0;
 		for (int i = index; i < expression.length(); i++) {
 			char character = expression.charAt(i);
@@ -173,6 +290,11 @@ public class INDO {
 		return -1;
 	}
 	
+	/*
+	 * Given the end of a parenthetical expression, where does it begin?
+	 * Example:
+	 * getOpenParen("a&(b|c)", 6) returns 2
+	 */
 	private static int getOpenParen(String expression, int index) {
 		int layers = 0;
 		for (int i = index; i >= 0; i--) {
@@ -184,6 +306,12 @@ public class INDO {
 		return -1;
 	}
 	
+	/*
+	 * Get the logical expression directly to the left of the character at 
+	 * the specified position.
+	 * Example:
+	 * getLeftExpression("(a=>~b)&(c|d)", 6) returns (a=>~b) 
+	 */
 	private static String getLeftExpression(String expression, int index) {
 		if (expression.charAt(index - 1) == ')') {
 			return expression.substring(getOpenParen(expression, index - 1), index);
@@ -194,6 +322,12 @@ public class INDO {
 		} else return Character.toString(literal.charAt(literal.length() - 1));
 	}
 	
+	/*
+	 * Get the logical expression directly to the right of the character at 
+	 * the specified position.
+	 * Example:
+	 * getRightExpression("(a=>~b)&(c|d)", 6) returns (c|d) 
+	 */
 	private static String getRightExpression(String expression, int index) {
 		if (expression.charAt(index + 1) == '(') {
 			return expression.substring(index + 1, getCloseParen(expression, index + 1) + 1);
@@ -204,9 +338,28 @@ public class INDO {
 		} else return Character.toString(literal.charAt(0));
 	}
 	
-	private static boolean enclosed(String expression) {
-		return expression.matches("\\(.*\\)");
+	/* 
+	 * Is the given expression of the form a|b|c|...|d or a&b&c&...&d
+	 * where a, b, c, and d are arbitrary logical expressions?
+	 */
+	private static boolean onlyOneOperator(String expression, char operator) {
+		while (enclosed(expression)) expression = expression.substring(1, expression.length() - 1);
+		char otherOperator = (operator == '|') ? '&' : '|';
+		for (int i = 0; i < expression.length(); i++) {
+			if (expression.charAt(i) == otherOperator) return false;
+			if (expression.charAt(i) == '(') i += getCloseParen(expression, i) - 1;
+		}
+		return true;
 	}
-
-
+	
+	/* 
+	 * Is the given string enclosed in parentheses?
+	 * Example:
+	 * ((a&b)|c|(d&e)) - yes
+	 * (a|b)=>(c|d|e) - no
+	 */
+	private static boolean enclosed(String expression) {
+		if (expression.length() <= 2) return false;
+		return getCloseParen(expression, 0) == expression.length() - 1;
+	}
 }
