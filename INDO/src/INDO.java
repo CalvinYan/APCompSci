@@ -19,22 +19,18 @@ public class INDO {
 	}
 
 	public static void main(String[] args) {
-		TreeSet<String[]> clauses = new TreeSet<String[]>();
-		String expression;
 		// Test cases
-
-		expression = "a=>b&c|d";
-		//expression = "a&b=>c|d&~e";
-		//expression = "a|~b|(c=>~d&e)<=g";
-		//expression = "a=>~(b|c&d=>e)|f<=>~~g";	DOES NOT WORK
-		//expression = "a|(b&~c&d&~e)|f&g&h";
-		System.out.println("Evaluating " + expression);
-		clauses = getClauses(expression);
-		System.out.println("Clauses: ");
-		for (String[] s : clauses) {
-			Arrays.sort(s, new LiteralComparator());
-			System.out.println(Arrays.toString(s));
-		}
+		
+		// Expected value: ~a|~b
+		//String expression = "~(a&b)";
+		
+		// Expected value: a|b
+		//String expression = "~(~a&~b)";
+		
+		// Expected value: a|b&c|~x|~y&z
+		String expression = "~(~a&~b)&~~c|~(x&y|~z)";
+		
+		System.out.println(removeNegations(expression));
 	}
 	
 	// Applies the O part of the INDO method to convert a CNF expression to clauses
@@ -63,6 +59,20 @@ public class INDO {
 			clauses.add(literals);
 		}
 		return clauses;
+	}
+	
+	public static int f(int x, int y){
+		
+		System.out.println(x + " " + y);
+
+	    int temp = x-1;
+
+	    if(x == 0) return y+1;
+
+	    if(x > 0 && y == 0) return f(x-1,1);
+
+	    return f(x-1, f(x,y-1));
+
 	}
 	
 	/*
@@ -141,15 +151,45 @@ public class INDO {
 		return expression;
 	}
 
-	// Converts all negations to a different form
+	/*
+	 * Input: expression - The logical expression to process
+	 * 
+	 * Output: expression - The input statement with negations removed
+	 * 
+	 * Effect: Implements the N part of INDO by removing double negatives and
+	 * distributing negated parentheticals
+	 * 
+	 * Preconditions: There can't be any parentheses in parentheses (()) or
+	 * implications in the input. No whitespaces either. The input must also
+	 * be a valid logical proposition, although I didn't need to tell you that
+	 */
 	private static String removeNegations(String expression) {
 		int index = 0;
-		// Find all negated expressions
+		// Find all negated parenthetical expressions
 		while ((index = expression.indexOf("~(")) != -1) {
+			// Remove the ~( part of the expression.
+			expression = expression.substring(0, index) + expression.substring(index+2);
 			// Distribute the negation among the literals in the parentheses
-			int leftBound = index, rightBound = getCloseParen(expression, leftBound + 1) + 1;
-			String parenthetical = expression.substring(leftBound, rightBound);
-			expression = expression.replace(parenthetical, negateParenthetical(parenthetical));
+			char c;
+			while ((c = expression.charAt(index)) != ')') {
+				// Negate all literals
+				if (Character.isAlphabetic(c)) {
+					expression = expression.substring(0, index) + "~" + expression.substring(index);
+					// Since we just added a character the index needs to get back to where it originally was
+					index++;
+				} else {
+					// Switch all operators (AND to OR and OR to AND)
+					if (c == '|') {
+						expression = expression.substring(0, index) + "&" + expression.substring(index+1);
+					} else if (c == '&') {
+						expression = expression.substring(0, index) + "|" + expression.substring(index+1);
+					}
+				}
+				// Next character
+				index++;
+			}
+			// Remove the end parentheses
+			expression = expression.substring(0, index) + expression.substring(index + 1);
 		}
 		
 		// Remove double negatives
